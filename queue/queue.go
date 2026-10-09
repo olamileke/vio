@@ -2,34 +2,27 @@ package queue
 
 import (
 	"fmt"
-	"time"
 	"vio/models"
 )
 
 var taskChannel chan models.Task = make(chan models.Task, 10)
 var resultChannel chan models.Result = make(chan models.Result, 10)
 
-// var taskWg sync.WaitGroup
-// var resultWg sync.WaitGroup
-
-func processTask(tasks <-chan models.Task, results chan<- models.Result) {
-	fmt.Println("Inisde the goroutine")
+func processTask(id int, tasks <-chan models.Task, results chan<- models.Result) {
 	for task := range tasks {
-		fmt.Println(task.Content)
+		task.Content = "abcd"
+		fmt.Printf("goroutine with id %d running\n", id)
 	}
 }
 
 func Queue(task models.Task) {
 	taskChannel <- task
 
-	fmt.Printf("Here is the length of the task channel: %d\n", len(taskChannel))
-
 	initTaskProcessing := func() {
 		for i := 1; i <= 3; i++ {
-			go processTask(taskChannel, resultChannel)
-			time.Sleep(3 * time.Second)
+			go processTask(i, taskChannel, resultChannel)
 		}
-		fmt.Println("Inside init processing")
+		fmt.Println("Inside the init processing method")
 	}
 
 	if (len(taskChannel) - 1) == 0 {

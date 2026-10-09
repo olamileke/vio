@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"vio/models"
 	"vio/queue"
 
@@ -29,7 +30,18 @@ func (qc *queueController) queue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	task := models.Task{Uuid: uuid.New(), Type: createTaskDto.Type, Content: createTaskDto.Content}
+	var parsedType int
+
+	switch strings.ToLower(createTaskDto.Type) {
+	case "email":
+		parsedType = 1
+	case "pdf":
+		parsedType = 2
+	default:
+		parsedType = 1
+	}
+
+	task := models.Task{Uuid: uuid.New(), Type: parsedType, Content: createTaskDto.Content}
 
 	queue.Queue(task)
 

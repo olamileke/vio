@@ -3,7 +3,7 @@ package models
 import "github.com/google/uuid"
 
 type CreateTaskDto struct {
-	Type    int    `json:"type"`
+	Type    string `json:"type"`
 	Content string `json:"content"`
 }
 

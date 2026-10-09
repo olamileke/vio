@@ -10,14 +10,24 @@ import (
 )
 
 func main() {
-	mux := http.NewServeMux()
+	queueMux := http.NewServeMux()
+	requestMux := http.NewServeMux()
 
-	controllers.RegisterQueueRoutes(mux)
+	controllers.RegisterQueueRoutes(queueMux)
+	controllers.RegisterRequestRoutes(requestMux)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	queueServer := &http.Server{
 		Addr:    ":8000",
-		Handler: mux,
+		Handler: queueMux,
+		BaseContext: func(l net.Listener) context.Context {
+			return ctx
+		},
+	}
+
+	requestServer := &http.Server{
+		Addr:    ":5000",
+		Handler: requestMux,
 		BaseContext: func(l net.Listener) context.Context {
 			return ctx
 		},
@@ -29,8 +39,17 @@ func main() {
 			fmt.Printf("Queue server port closed")
 		} else if err != nil {
 			fmt.Printf("There was a problem running the queue server: %s", err)
-		} else {
-			fmt.Printf("Queue server running on port :8000")
+		}
+
+		cancelCtx()
+	}()
+
+	go func() {
+		err := requestServer.ListenAndServe()
+		if errors.Is(err, http.ErrServerClosed) {
+			fmt.Printf("Queue server port closed")
+		} else if err != nil {
+			fmt.Printf("There was a problem running the request server: %s", err)
 		}
 
 		cancelCtx()
