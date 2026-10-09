@@ -1,7 +1,11 @@
 package models
 
+import "github.com/google/uuid"
+
 type Result struct {
-	Task
+	Uuid     uuid.UUID
+	Type     int
+	Content  string
 	Status   string
 	Duration float64
 }
