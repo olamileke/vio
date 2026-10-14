@@ -7,9 +7,13 @@ import (
 	"net"
 	"net/http"
 	"vio/controllers"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
+
 	queueMux := http.NewServeMux()
 	requestMux := http.NewServeMux()
 

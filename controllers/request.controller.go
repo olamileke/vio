@@ -21,15 +21,15 @@ func RegisterRequestRoutes(mux *http.ServeMux) {
 }
 
 func (rc *requestController) makeRequests(w http.ResponseWriter, r *http.Request) {
-	taskDtos := make([]models.CreateTaskDto, 0, 50)
+	taskDtos := make([]models.CreateTaskDto, 0, 15)
 
-	for i := 0; i < 50; i++ {
+	for i := 1; i <= 15; i++ {
 		var taskType string
 
 		if i%3 == 0 || i%5 == 0 {
-			taskType = "pdf"
-		} else {
 			taskType = "email"
+		} else {
+			taskType = "pdf"
 		}
 
 		taskDto := models.CreateTaskDto{Type: taskType, Content: cryptorand.Text()}
@@ -38,7 +38,7 @@ func (rc *requestController) makeRequests(w http.ResponseWriter, r *http.Request
 
 	var wg sync.WaitGroup
 
-	wg.Add(50)
+	wg.Add(15)
 
 	for _, taskDto := range taskDtos {
 		go func() {
@@ -47,7 +47,11 @@ func (rc *requestController) makeRequests(w http.ResponseWriter, r *http.Request
 			defer wg.Done()
 
 			postBody, _ := json.Marshal(taskDto)
-			response, error := http.Post("http://localhost:8000/queue", "application/json", bytes.NewBuffer(postBody))
+			response, error := http.Post(
+				"http://localhost:8000/queue",
+				"application/json",
+				bytes.NewBuffer(postBody),
+			)
 
 			if error != nil {
 				log.Fatalf("Request with content %s failed", taskDto.Content)
