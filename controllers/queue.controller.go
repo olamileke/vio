@@ -10,14 +10,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type queueController struct{}
-
-func RegisterQueueRoutes(mux *http.ServeMux) {
-	qc := queueController{}
-	mux.HandleFunc("/queue", qc.queue)
+type queueController struct {
+	queue *queue.Queue
 }
 
-func (qc *queueController) queue(w http.ResponseWriter, r *http.Request) {
+func RegisterQueueRoutes(mux *http.ServeMux, queue *queue.Queue) {
+	qc := queueController{queue: queue}
+	mux.HandleFunc("/queue", qc.enqueue)
+}
+
+func (qc *queueController) enqueue(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -43,7 +45,7 @@ func (qc *queueController) queue(w http.ResponseWriter, r *http.Request) {
 
 	task := models.Task{Uuid: uuid.New(), Type: parsedType, Content: createTaskDto.Content}
 
-	queue.Queue(task)
+	qc.queue.Process(task)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -6,7 +6,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 	"vio/controllers"
+	"vio/models"
+	queuepkg "vio/queue"
 
 	"github.com/joho/godotenv"
 )
@@ -17,7 +24,13 @@ func main() {
 	queueMux := http.NewServeMux()
 	requestMux := http.NewServeMux()
 
-	controllers.RegisterQueueRoutes(queueMux)
+	var wg sync.WaitGroup
+	taskChannel := make(chan models.Task, 10)
+	logChannel := make(chan models.Log, 10)
+
+	queue := queuepkg.Queue{Wg: wg, TaskChannel: taskChannel, LogChannel: logChannel}
+
+	controllers.RegisterQueueRoutes(queueMux, &queue)
 	controllers.RegisterRequestRoutes(requestMux)
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
@@ -51,13 +64,26 @@ func main() {
 	go func() {
 		err := requestServer.ListenAndServe()
 		if errors.Is(err, http.ErrServerClosed) {
-			fmt.Printf("Queue server port closed")
+			fmt.Printf("Queue server port closed\n")
 		} else if err != nil {
-			fmt.Printf("There was a problem running the request server: %s", err)
+			fmt.Printf("There was a problem running the request server: %s\n", err)
 		}
 
 		cancelCtx()
 	}()
 
-	<-ctx.Done()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	<-quit
+	fmt.Println("Server is shutting down...\n")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutdownCancel()
+
+	if err := queueServer.Shutdown(shutdownCtx); err != nil {
+		fmt.Printf("Queue server forced to shutdown: %s\n", err)
+	}
+
+	fmt.Println("Server stopped\n")
 }
