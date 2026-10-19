@@ -37,7 +37,7 @@ func (qc *queueController) enqueue(w http.ResponseWriter, r *http.Request) {
 	switch strings.ToLower(createTaskDto.Type) {
 	case "email":
 		parsedType = 1
-	case "pdf":
+	case "image":
 		parsedType = 2
 	default:
 		parsedType = 1

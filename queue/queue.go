@@ -12,14 +12,14 @@ import (
 )
 
 type Queue struct {
-	Wg          sync.WaitGroup
+	WorkerWg    *sync.WaitGroup
+	LogWg       *sync.WaitGroup
 	TaskChannel chan models.Task
 	LogChannel  chan models.Log
 }
 
 func (queue *Queue) Process(task models.Task) {
 	queue.TaskChannel <- task
-	queue.Wg.Add(1)
 
 	initProcessing := func() {
 		for i := 1; i <= 3; i++ {
@@ -35,6 +35,8 @@ func (queue *Queue) Process(task models.Task) {
 }
 
 func (queue *Queue) processTasks(id int) {
+	defer queue.WorkerWg.Done()
+
 	for task := range queue.TaskChannel {
 		start := time.Now()
 		var end time.Time
@@ -70,6 +72,8 @@ func (queue *Queue) processTasks(id int) {
 }
 
 func (queue *Queue) processLogs() {
+	defer queue.LogWg.Done()
+
 	for log := range queue.LogChannel {
 		directory, _ := os.Getwd()
 		logsPath := filepath.Join(directory, "logs.json")
